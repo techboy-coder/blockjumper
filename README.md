@@ -2,6 +2,7 @@
 
 Simple obstacle jumping game made using Python and Pygame.
 
+Run using `python .\main.py`.
 
 ## Demo
 
