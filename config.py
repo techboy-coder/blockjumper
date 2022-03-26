@@ -8,27 +8,31 @@ class Config:
         self.fps = 60
         self.title = "Dino Game"
 
-        self.bg_color = pygame.Color("#e6e8e666")
-        self.ground_color = pygame.Color("#080708")
-        self.player_color = pygame.Color("#ffb703")
-        self.solid_color = pygame.Color("#d9d9d9")
+        self.bg_color = pygame.Color("#ffffff55")
+        self.ground_color = pygame.Color("#212529")
+        self.player_color = pygame.Color("#5463FF")
+        self.solid_color = pygame.Color("#ECECEC")
         # self.obstacle_color = pygame.Color("#284b63")
-        self.obstacle_color = pygame.Color("#df2935")
+        self.obstacle_color = pygame.Color("#FF1818")
 
-        self.gravity = 0.5
-        self.ground_size = 80
-        self.player_size = 50
-        self.obstacle_size = 60
-        self.obstacle_speed = -6
+        self.player_gravity = 0.9
+        self.ground_size = 120
+        self.player_size = 60
+        self.player_speed = 5
+        self.obstacle_size = 40
+        self.obstacle_start_speed = -4
+        self.obstacle_speed = self.obstacle_start_speed
         self.player_start_distance_from_left = 100
-        self.player_start_lives = 3
-        self.min_distance_between_obstacles = 70 + self.obstacle_size
-        self.player_jump_speed = -10
+        self.player_lives = 3
+        self.min_distance_between_obstacles = 350 + self.obstacle_size
+        self.player_jump_speed = 24
 
         self.font_size = 30
-        self.font_color = pygame.Color("#ffffff")
+        self.font_color = pygame.Color("#000000")
         self.score_width = 100
         self.score_height = 50
+
+        self.player_start_distance_from_wall = self.player_size + 100
         
 
     def increase_obstacle_speed(self):

@@ -18,13 +18,16 @@ class Game:
 
         # Ground
         self.ground = Ground(self.screen, config)
-
         self.obstacles = []
 
+        # Player
+        self.player = Player(self.screen, config)
+        self.player_lives = config.player_lives
+        self.score = 0
 
     # Spawn obstacles every 1 to 4 seconds randomly using random.randint function
     def spawn_obstacles(self):
-        r = random.randint(1, 3*self.config.fps//10)
+        r = random.randint(1, 3*self.config.fps//20)
         # r = random.randint(1, 3)
         if r == 1:
             # self.obstacles.append(Obstacle(self.screen, config))
@@ -38,6 +41,7 @@ class Game:
 
 
     def run(self):
+        config.obstacle_speed = config.obstacle_start_speed
         while self.running:
             self.clock.tick(config.fps)
             self.events()
@@ -48,6 +52,10 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+                quit()
+            if event.type == pygame.KEYDOWN:# and event.key == pygame.K_SPACE:
+                self.player.jump()
+
 
             
     def update(self):
@@ -62,6 +70,43 @@ class Game:
             except:
                 pass
 
+        self.player.update()
+        # Check if player collides with any obstacle
+        for obstacle in self.obstacles:
+            if self.player.rect.colliderect(obstacle.rect):
+                self.player_lives -= 1
+                print(self.player_lives)
+                if self.player_lives == 0:
+                    self.running = False
+                else:
+                    self.player.reset()
+                    self.obstacles = []
+                    # self.score = 0
+        
+        # Add score
+        self.score += 1
+        if int(self.score) == self.score and self.score != 0 and self.score % 80 == 0:
+            config.obstacle_speed -= 0.4
+        # self.player.jump_speed += 0.1
+        # self.player.gravity += 0.0001
+        # print(config.obstacle_speed)
+        # print(self.player.jump_speed)
+                    
+
+    def show_score(self):
+        # Font is fira code
+        font = pygame.font.SysFont("Fira Code", self.config.font_size)
+        text = font.render("Score: " + str(int(self.score)), True, self.config.font_color)
+        text_rect = text.get_rect()
+        text_rect.center = (100, 40)
+        self.screen.blit(text, text_rect)
+    
+    def show_lives(self):
+        font = pygame.font.SysFont("Fira Code", self.config.font_size)
+        text = font.render("Lives: " + str(self.player_lives), True, self.config.font_color)
+        text_rect = text.get_rect()
+        text_rect.center = (self.config.width - 100, 40)
+        self.screen.blit(text, text_rect)
 
 
 
@@ -70,7 +115,9 @@ class Game:
         self.ground.draw()
         for obstacle in self.obstacles:
             obstacle.draw()
-
+        self.player.draw()
+        self.show_score()
+        self.show_lives()
         pygame.display.flip()
         
 
@@ -115,13 +162,13 @@ class Obstacle:
             self.destroy = True
 
 # Player is a square
-# Player starts on ground, player start distance from wall and can jump
-# Player can only jump if it is on ground
-# Player has score
-# Player has lives
-# Player increases score every time it jumps over obstacle
-# Player loses life every time it hits obstacle
-# If player has no lives, game over is true
+# Starts on ground on config.player_start_distance_from_wall
+# Player can only jump if it is on the ground
+# Player.x stays constant and cannot change
+# Player.y can change
+# Player speed is config.player_speed and is jumping speed
+# Gravity is config.player_gravity and pulls player down when it is not on the ground
+# Player can only jump if it is on the ground
 class Player:
     def __init__(self, screen, config):
         self.screen = screen
@@ -129,48 +176,60 @@ class Player:
         self.rect = pygame.Rect(config.player_start_distance_from_wall, config.height - config.ground_size - config.player_size, config.player_size, config.player_size)
         self.color = config.player_color
         self.speed = config.player_speed
+        # Gravity affects player.jump_speed
+        self.gravity = config.player_gravity
         self.jump_speed = config.player_jump_speed
-        self.score = 0
-        self.lives = config.player_lives
         self.is_jumping = False
+        self.is_double_jumping = False
 
-    def draw(self):
-        pygame.draw.rect(self.screen, self.color, self.rect)
+
+    def init_position(self):
+        self.rect.x = self.config.player_start_distance_from_wall
+        self.rect.y = self.config.height - self.config.ground_size - self.config.player_size
+
+    def check_if_collides_and_return_bool(self, obstacles):
+        return any(self.rect.colliderect(obstacle.rect) for obstacle in obstacles)
+    
+    def update(self):
+        # Gravity affects player.jump_speed
+        self.rect.y -= self.jump_speed
+        self.jump_speed -= self.gravity
+        # Stop player from falling through ground
+        if self.rect.y > self.config.height - self.config.ground_size - self.config.player_size:
+            # Put player back on ground
+            self.init_position()
+            # Stop player from jumping
+            self.is_jumping = False
+            self.is_double_jumping = False
 
     def jump(self):
-        if self.is_jumping:
-            self.rect.y -= self.jump_speed
+        # Player can only jump if it is on the ground and not already jumping
+        if self.rect.y >= self.config.height - self.config.ground_size - self.config.obstacle_size - self.config.player_size and not self.is_jumping:
+            self.is_jumping = True
+            self.jump_speed = self.config.player_jump_speed
+        
+        # Player can only double jump if it is jumping
+        if self.is_jumping and not self.is_double_jumping:
+            self.is_double_jumping = True
+            self.jump_speed = self.config.player_jump_speed
+        
         else:
-              self.rect.y += self.jump_speed
-        if self.rect.y < self.config.height - self.config.ground_size - self.config.player_size:
-            self.is_jumping = False
-            self.rect.y = self.config.height - self.config.ground_size - self.config.player_size
+            self.stop_jumping()
 
-    def update(self):
-        self.rect.x -= self.speed
-        if self.rect.x < 0:
-            self.rect.x = 0
-        if self.rect.x > self.config.width - self.config.player_size:
-            self.rect.x = self.config.width - self.config.player_size
-        self.jump()
-
-    def check_collision(self, obstacle):
-        if self.rect.colliderect(obstacle.rect):
-            self.lives -= 1
-            if self.lives == 0:
-                self.game_over = True
-            else:
-                self.rect.x = self.config.player_start_distance_from_wall
-                self.rect.y = self.config.height - self.config.ground_size - self.config.player_size
-                self.score = 0
-                self.lives = config.player_lives
-                self.is_jumping = False
-                self.game_over = False
-            return True
-        return False
+    def draw(self):
+        # pygame.draw.rect(self.screen, self.color, self.rect)
+        draw_rounded_rect(self.screen, self.rect, self.color, self.config.player_size//7)
+    
+    def stop_jumping(self):
+        self.is_jumping = False
+        self.jump_speed = -self.config.player_jump_speed * 2
+        self.is_double_jumping = False
 
     
-
+    def reset(self):
+        self.init_position()
+        self.stop_jumping()
+    
 
 
 
